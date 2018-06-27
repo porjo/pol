@@ -20,6 +20,7 @@ type PolMilter struct {
 	milter.Milter
 	from       string
 	rcptTo     string
+	subject    string
 	rcptInToCc bool
 }
 
@@ -34,6 +35,9 @@ func (b *PolMilter) Header(name, value string, m *milter.Modifier) (milter.Respo
 		if strings.Contains(strings.ToLower(value), Email) {
 			b.rcptInToCc = true
 		}
+	}
+	if name == "Subject" {
+		b.subject = value
 	}
 	return milter.RespContinue, nil
 }
@@ -57,9 +61,10 @@ func (b *PolMilter) MailFrom(from string, m *milter.Modifier) (milter.Response, 
 func (b *PolMilter) Headers(headers textproto.MIMEHeader, m *milter.Modifier) (milter.Response, error) {
 	if b.rcptTo == Email && !b.rcptInToCc {
 		//TODO custom message here?
+		sysLog.Info(fmt.Sprintf("REJECT message from %s to %s, subject '%s'\n", b.from, b.rcptTo, b.subject))
 		return milter.RespReject, nil
 	}
-	sysLog.Info(fmt.Sprintf("message from %s to %s\n", b.from, b.rcptTo))
+	sysLog.Info(fmt.Sprintf("OK message from %s to %s, subject '%s'\n", b.from, b.rcptTo, b.subject))
 	return milter.RespContinue, nil
 }
 
