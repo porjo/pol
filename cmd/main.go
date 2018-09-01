@@ -74,11 +74,15 @@ func main() {
 	// declare milter init function
 	init := func() (milter.Milter, uint32, uint32) {
 		var milters []milter.Milter
-		rcpt := &rcptHeader.RcptMilter{
+		rcpt := &rcptHeader.Milter{
 			Email:  Email,
 			Logger: log.New(sysLog, "", log.LstdFlags),
 		}
-		milters = append(milters, &spf.SPFMilter{}, rcpt)
+
+		spf_ := &spf.Milter{
+			Logger: log.New(sysLog, "", log.LstdFlags),
+		}
+		milters = append(milters, spf_, rcpt)
 		return &pol.Milter{Milters: milters},
 			milter.OptAddHeader,
 			milter.OptNoConnect | milter.OptNoHelo | milter.OptNoBody

@@ -1,39 +1,63 @@
 package spf
 
 import (
-	//"fmt"
+	"log"
+	"net"
 	"net/textproto"
 
 	//"github.com/phalaaxx/milter"
 	"github.com/porjo/milter"
+	"github.com/porjo/spf"
 )
 
-type SPFMilter struct {
+type Milter struct {
+	clientIP net.IP
+	from     string
+	Logger   *log.Logger
+
 	milter.Milter
 }
 
 // Header parses message headers one by one
-func (b *SPFMilter) Header(name, value string, m *milter.Modifier) (milter.Response, error) {
+func (b *Milter) Header(name, value string, m *milter.Modifier) (milter.Response, error) {
+
 	return milter.RespContinue, nil
 }
 
 // RcptTo is called to process filters on envelope TO address
 //   supress with NoRcptTo
-func (b *SPFMilter) RcptTo(rcptTo string, m *milter.Modifier) (milter.Response, error) {
+func (b *Milter) RcptTo(rcptTo string, m *milter.Modifier) (milter.Response, error) {
 	return milter.RespContinue, nil
 
 }
 
 // MailFrom is called on envelope from address
-func (b *SPFMilter) MailFrom(from string, m *milter.Modifier) (milter.Response, error) {
+func (b *Milter) MailFrom(from string, m *milter.Modifier) (milter.Response, error) {
+	b.from = from
+	return milter.RespContinue, nil
+}
+
+func (b *Milter) Connect(host string, family string, port uint16, addr net.IP, mod *milter.Modifier) (milter.Response, error) {
+
+	b.clientIP = addr
 	return milter.RespContinue, nil
 }
 
 // Headers is called after the last of message headers
-func (b *SPFMilter) Headers(headers textproto.MIMEHeader, m *milter.Modifier) (milter.Response, error) {
+func (b *Milter) Headers(headers textproto.MIMEHeader, m *milter.Modifier) (milter.Response, error) {
+
+	result, err := spf.SPFTest(b.clientIP.String(), b.from)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == spf.Fail {
+		b.Logger.Printf("REJECT message, SPF Check: from IP %s with email %s\n", b.clientIP, b.from)
+		return milter.RespReject, nil
+	}
 	return milter.RespContinue, nil
 }
 
-func (b *SPFMilter) Body(m *milter.Modifier) (milter.Response, error) {
-	return milter.RespAccept, nil
+func (b *Milter) Body(m *milter.Modifier) (milter.Response, error) {
+	return milter.RespContinue, nil
 }

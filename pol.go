@@ -1,6 +1,7 @@
 package pol
 
 import (
+	"net"
 	"net/textproto"
 
 	//"github.com/phalaaxx/milter"
@@ -34,6 +35,21 @@ func (b *Milter) Header(name, value string, mod *milter.Modifier) (milter.Respon
 func (b *Milter) RcptTo(rcptTo string, mod *milter.Modifier) (milter.Response, error) {
 	for _, m := range b.Milters {
 		r, err := m.RcptTo(rcptTo, mod)
+		if err != nil {
+			return nil, err
+		}
+		if r != milter.RespContinue {
+			return r, nil
+		}
+	}
+
+	return milter.RespContinue, nil
+}
+
+func (b *Milter) Connect(host string, family string, port uint16, addr net.IP, mod *milter.Modifier) (milter.Response, error) {
+
+	for _, m := range b.Milters {
+		r, err := m.Connect(host, family, port, addr, mod)
 		if err != nil {
 			return nil, err
 		}
