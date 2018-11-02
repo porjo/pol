@@ -75,7 +75,7 @@ func (b *PolMilter) Body(m *milter.Modifier) (milter.Response, error) {
 
 func RunServer(socket net.Listener) {
 	// declare milter init function
-	init := func() (milter.Milter, uint32, uint32) {
+	init := func() (milter.Milter, milter.OptAction, milter.OptProtocol) {
 		return &PolMilter{},
 			milter.OptAddHeader,
 			milter.OptNoConnect | milter.OptNoHelo | milter.OptNoBody
